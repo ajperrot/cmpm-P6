@@ -1,9 +1,19 @@
 This project was completed by Alex Perrotti and Jay Parikh
 
 selection:
-Our two selection functions are as follow:
-truncation selection:
-this we did by taking the top 1/p best fit members of the population,
-and randomly breeding them with one another to produce p children each
-we used teh wikipedia article on this for reference:
-https://en.wikipedia.org/wiki/Truncation_selection
+Our two selection functions are as follows:
+ truncation selection:
+  this we did by taking the top 1/p best fit members of the population,
+  and randomly breeding them with one another to produce p children each
+  we used the wikipedia article on this for reference:
+  https://en.wikipedia.org/wiki/Truncation_selection
+ roulette wheel selection:
+  this was accomplished by generating a sum of all _fitness values in the population,
+  choosing a random number between zero and that,
+  and then subtracting each individual's _fitness from that until it dips below zero.
+  This method gives each individual a chance to be selected
+  relative to its _fitness reletive to the group's overall _fitness.
+  The algorithm was once again derived from wikipedia:
+  https://en.wikipedia.org/wiki/Fitness_proportionate_selection#Java_–_linear_O(n)_version
+
+

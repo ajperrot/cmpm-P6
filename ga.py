@@ -70,8 +70,8 @@ class Individual_Grid(object):
         # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
         #mutation rate varies by individual
         rate = random.random()
-        #alter at most 5% of stage
-        rate = rate / 20
+        #alter at most 1% of stage
+        rate = rate / 100
         alterations = math.floor(rate * width * height)
         for _ in range(alterations):
             y = math.floor(random.random() * height)
@@ -79,11 +79,12 @@ class Individual_Grid(object):
             addition = random.choice(options)
             addition, genome = getTile(y, x, addition, genome)
             genome[y][x] = addition
-            #add empty space to compensate
-            y = math.floor(random.random() * height)
-            x = math.ceil(random.random() * (width - 2))
-            if genome[y][x] != "T" and genome[y][x] != "|":
-              genome[y][x] = "-"
+            #add 5 empty space per addition to compensate
+            for _ in range(5):
+                y = math.floor(random.random() * height)
+                x = math.ceil(random.random() * (width - 2))
+                if genome[y][x] != "T" and genome[y][x] != "|":
+                    genome[y][x] = "-"
         return genome
 
     # Create zero or more children from self and other
@@ -379,6 +380,7 @@ def generate_successors(population):
     results = []
     # STUDENT Design and implement this
     # Hint: Call generate_children() on some individuals and fill up results.
+    """
     #truncation selection
     p = 2
     queue = []
@@ -388,10 +390,31 @@ def generate_successors(population):
     for _ in range(0, math.floor(len(population) / p)):
         selected.append(heapq.heappop(queue)[2])
     for parent in selected:
-        for _ in range(math.floor(p/2)):
+        for _ in range(math.ceil(p/2)):
             children = parent.generate_children(random.choice(selected))
             results.append(children[0])
             results.append(children[1])
+    """
+
+    #roulette wheel selection
+    totalFitness = 0
+    for Individual in population:
+        totalFitness += Individual._fitness
+    for _ in range(0, len(population), 2):
+        selection = random.random() * totalFitness
+        for Parent in population:
+            selection -= Parent._fitness
+            if selection < 0:
+                secondChoice = random.random() * totalFitness
+                for Mate in population:
+                    secondChoice -= Mate._fitness
+                    if secondChoice < 0:
+                        children = Parent.generate_children(Mate)
+                        results.append(children[0])
+                        results.append(children[1])
+                        break
+                break
+
     return results
 
 
