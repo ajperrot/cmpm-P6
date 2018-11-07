@@ -1,7 +1,7 @@
 This project was completed by Alex Perrotti and Jay Parikh
 
 selection:
-Our two selection functions are as follows:
+ our two selection functions are as follows:
  truncation selection:
   this we did by taking the top 1/p best fit members of the population,
   and randomly breeding them with one another to produce p children each
@@ -15,5 +15,36 @@ Our two selection functions are as follows:
   relative to its _fitness reletive to the group's overall _fitness.
   The algorithm was once again derived from wikipedia:
   https://en.wikipedia.org/wiki/Fitness_proportionate_selection#Java_–_linear_O(n)_version
+ there is a 50% chance that our algorithm chooses to use one or the other each generation
+
+grid fitness function:
+ our fitness function is largely the original,
+ modified slightly in order to more strongly favor:
+ solvability and negative space
+ and place less emphasis on:
+ path percentage and non-linearity
+
+grid crossover:
+ our crossover function uses uniform crossover where 2 children are made:
+ both represent a sort of checkerboard between both parents,
+ with one taking the tiles not chosen by the others.
+ extra handling is involved to ensure pipes render on a solid tile,
+ and that pipe shafts do not spawn in midair randomly.
+
+grid mutate:
+ our mutation operator selects a small poriton of the level's tiles (currently 1%),
+ and fills them with a random tile, given the same pipe handling as grid crossover.
+ for every alteration it makes in this way, it adds 5 tiles of whitespace randomly, 
+ so as to avoid stages becoming overly cluttered and unplayable.
+
+grid random individual:
+ our gneration for random individuals is also modified.
+ it has the same pipe-handling as mentioned above,
+ and does not modify the first and last columns of the stage,
+ aside from their defaults.
+ we also generate only 5% randoms in our initial population.
+ the other 95% are empty.
+ with the original parameters most stages would end up unplayably full of random tiles
+ 
 
 

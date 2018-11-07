@@ -47,11 +47,11 @@ class Individual_Grid(object):
         # STUDENT Modify this, and possibly add more metrics.  You can replace this with whatever code you like.
         coefficients = dict(
             meaningfulJumpVariance=0.5,
-            negativeSpace=0.6,
-            pathPercentage=0.5,
+            negativeSpace=0.8,#originally 0.6
+            pathPercentage=0.4,#originally 0.5
             emptyPercentage=0.6,
-            linearity=-0.5,
-            solvability=2.0
+            linearity=-0.2,#originally -0.5
+            solvability=4.0#originally 2.0
         )
         self._fitness = sum(map(lambda m: coefficients[m] * measurements[m],
                                 coefficients))
@@ -380,21 +380,24 @@ def generate_successors(population):
     results = []
     # STUDENT Design and implement this
     # Hint: Call generate_children() on some individuals and fill up results.
-    """
+
+    #50% chance to do truncation or roulette wheel sleection
+    if random.random() < 0.5:
+
     #truncation selection
-    p = 2
-    queue = []
-    selected = []
-    for i in range(len(population)):
-        queue.append((population[i]._fitness, i,  population[i]))
-    for _ in range(0, math.floor(len(population) / p)):
-        selected.append(heapq.heappop(queue)[2])
-    for parent in selected:
-        for _ in range(math.ceil(p/2)):
-            children = parent.generate_children(random.choice(selected))
-            results.append(children[0])
-            results.append(children[1])
-    """
+        p = 4
+        queue = []
+        selected = []
+        for i in range(len(population)):
+            queue.append((population[i]._fitness, i,  population[i]))
+        for _ in range(0, math.floor(len(population) / p)):
+            selected.append(heapq.heappop(queue)[2])
+        for parent in selected:
+            for _ in range(math.ceil(p/2)):
+                children = parent.generate_children(random.choice(selected))
+                results.append(children[0])
+                results.append(children[1])
+        return results
 
     #roulette wheel selection
     totalFitness = 0
@@ -429,7 +432,7 @@ def ga():
     with mpool.Pool(processes=os.cpu_count()) as pool:
         init_time = time.time()
         # STUDENT (Optional) change population initialization
-        population = [Individual.random_individual() if random.random() < 0.1 #ORIGINALLY 0.9
+        population = [Individual.random_individual() if random.random() < 0.05 #ORIGINALLY 0.9
                       else Individual.empty_individual()
                       for _g in range(pop_limit)]
         # But leave this line alone; we have to reassign to population because we get a new population that has more cached stuff in it.
