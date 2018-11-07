@@ -21,8 +21,8 @@ options = [
     "|",  # a pipe segment
     "T",  # a pipe top
     "E",  # an enemy
-    #"f",  # a flag, do not generate
-    #"v",  # a flagpole, do not generate
+    #"v",  # a flag, do not generate
+    #"f",  # a flagpole, do not generate
     #"m"  # mario's start position, do not generate
 ]
 
@@ -33,6 +33,7 @@ class Individual_Grid(object):
     __slots__ = ["genome", "_fitness"]
 
     def __init__(self, genome):
+        #genome is 2D array: [y][x]
         self.genome = copy.deepcopy(genome)
         self._fitness = None
 
@@ -41,7 +42,7 @@ class Individual_Grid(object):
     def calculate_fitness(self):
         measurements = metrics.metrics(self.to_level())
         # Print out the possible measurements or look at the implementation of metrics.py for other keys:
-        # print(measurements.keys())
+        #print(measurements.keys())
         # Default fitness function: Just some arbitrary combination of a few criteria.  Is it good?  Who knows?
         # STUDENT Modify this, and possibly add more metrics.  You can replace this with whatever code you like.
         coefficients = dict(
@@ -67,17 +68,28 @@ class Individual_Grid(object):
         # STUDENT implement a mutation operator, also consider not mutating this individual
         # STUDENT also consider weighting the different tile types so it's not uniformly random
         # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
-
-        left = 1
-        right = width - 1
-        for y in range(height):
-            for x in range(left, right):
-                pass
+        #mutation rate varies by individual
+        rate = random.random()
+        #alter at most 5% of stage
+        rate = rate / 20
+        alterations = math.floor(rate * width * height)
+        for _ in range(alterations):
+            y = math.floor(random.random() * height)
+            x = math.ceil(random.random() * (width - 2))
+            addition = random.choice(options)
+            addition, genome = getTile(y, x, addition, genome)
+            genome[y][x] = addition
+            #add empty space to compensate
+            y = math.floor(random.random() * height)
+            x = math.ceil(random.random() * (width - 2))
+            if genome[y][x] != "T" and genome[y][x] != "|":
+              genome[y][x] = "-"
         return genome
 
     # Create zero or more children from self and other
     def generate_children(self, other):
         new_genome = copy.deepcopy(self.genome)
+        bro_genome = copy.deepcopy(other.genome)#ORIGINAL LINE OF CODE
         # Leaving first and last columns alone...
         # do crossover with other
         left = 1
@@ -86,9 +98,20 @@ class Individual_Grid(object):
             for x in range(left, right):
                 # STUDENT Which one should you take?  Self, or other?  Why?
                 # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
-                pass
-        # do mutation; note we're returning a one-element tuple here
-        return (Individual_Grid(new_genome),)
+                #currently implementing uniform crossover
+                #bro_genome gets the leftover genes
+                if (x + y) % 2 == 0:
+                    addition = other.genome[y][x]
+                    addition, new_genome = getTile(y, x, addition, new_genome)
+                    new_genome[y][x] = addition
+                    #repeat check from bro's perspective
+                    addition = self.genome[y][x]
+                    addition, bro_genome = getTile(y, x, addition, bro_genome)
+                    bro_genome[y][x] = self.genome[y][x]
+        # do mutation; note we're returning a "two"-element tuple here
+        new_genome = self.mutate(new_genome)
+        bro_genome = self.mutate(bro_genome)
+        return (Individual_Grid(new_genome), Individual_Grid(bro_genome))
 
     # Turn the genome into a level string (easy for this genome)
     def to_level(self):
@@ -112,7 +135,16 @@ class Individual_Grid(object):
     def random_individual(cls):
         # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
         # STUDENT also consider weighting the different tile types so it's not uniformly random
-        g = [random.choices(options, k=width) for row in range(height)]
+        g = [["-" for col in range(width)] for row in range(height)]
+        left = 1
+        right = width - 1
+        for y in range(height):
+            for x in range(left, right):
+                #fill at most 25% of stage
+                if random.random() < 0.25:
+                    addition = random.choice(options)
+                    addition, g = getTile(y, x, addition, g)
+                    g[y][x] = addition
         g[15][:] = ["X"] * width
         g[14][0] = "m"
         g[7][-1] = "v"
@@ -347,12 +379,25 @@ def generate_successors(population):
     results = []
     # STUDENT Design and implement this
     # Hint: Call generate_children() on some individuals and fill up results.
+    #truncation selection
+    p = 2
+    queue = []
+    selected = []
+    for i in range(len(population)):
+        queue.append((population[i]._fitness, i,  population[i]))
+    for _ in range(0, math.floor(len(population) / p)):
+        selected.append(heapq.heappop(queue)[2])
+    for parent in selected:
+        for _ in range(math.floor(p/2)):
+            children = parent.generate_children(random.choice(selected))
+            results.append(children[0])
+            results.append(children[1])
     return results
 
 
 def ga():
     # STUDENT Feel free to play with this parameter
-    pop_limit = 480
+    pop_limit = 100 #originally 480
     # Code to parallelize some computations
     batches = os.cpu_count()
     if pop_limit % batches != 0:
@@ -361,7 +406,7 @@ def ga():
     with mpool.Pool(processes=os.cpu_count()) as pool:
         init_time = time.time()
         # STUDENT (Optional) change population initialization
-        population = [Individual.random_individual() if random.random() < 0.9
+        population = [Individual.random_individual() if random.random() < 0.1 #ORIGINALLY 0.9
                       else Individual.empty_individual()
                       for _g in range(pop_limit)]
         # But leave this line alone; we have to reassign to population because we get a new population that has more cached stuff in it.
@@ -407,6 +452,30 @@ def ga():
         except KeyboardInterrupt:
             pass
     return population
+
+#original helper function which weeds out nonsensical additions
+#returns tile to add to g[y][x] and a potentially altered g
+def getTile(y, x, addition, g):
+    #ensure pipe additions have a foundation
+    if addition == "T":
+        i = 1
+        while len(g) > y+i+1:
+            belowPipe = random.choice(options)
+            if belowPipe != "o" and belowPipe != "-" and belowPipe != "E":
+                g[y+i][x] = belowPipe
+                if belowPipe != "|":
+                    break
+                i += 1
+    if addition == "|":
+        addition = "o"
+    if y != 0 and (g[y-1][x] == "T" or g[y-1][x] == "|"):
+        if addition == "o" or addition == "-" or addition == "E":
+            if random.random() > .02:
+                addition = "B"
+            else:
+                addition = "T"
+    return (addition, g)
+
 
 
 if __name__ == "__main__":

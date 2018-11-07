@@ -1,0 +1,9 @@
+This project was completed by Alex Perrotti and Jay Parikh
+
+selection:
+Our two selection functions are as follow:
+truncation selection:
+this we did by taking the top 1/p best fit members of the population,
+and randomly breeding them with one another to produce p children each
+we used teh wikipedia article on this for reference:
+https://en.wikipedia.org/wiki/Truncation_selection
