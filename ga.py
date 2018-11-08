@@ -83,7 +83,7 @@ class Individual_Grid(object):
             for _ in range(10):
                 y = math.floor(random.random() * height)
                 x = math.ceil(random.random() * (width - 3))
-                if genome[y][x] != "T" and genome[y][x] != "|":
+                if len(genome) > 1 and genome[y-1][x] != "T" and genome[y-1][x] != "|"and genome[y-1][x-1] != "T" and genome[y-1][x-1] != "|":
                     genome[y][x] = "-"
         return genome
 
@@ -203,7 +203,7 @@ class Individual_DE(object):
             pathPercentage=0.5,
             emptyPercentage=0.6,
             linearity=-0.5,
-            solvability=2.0
+            solvability=10.0
         )
         penalties = 0
         # STUDENT For example, too many stairs are unaesthetic.  Let's penalize that
@@ -368,7 +368,7 @@ class Individual_DE(object):
     @classmethod
     def empty_individual(_cls):
         # STUDENT Maybe enhance this
-        g = []
+        g = [(random.randint(1, width - 2), "1_platform", random.randint(1, 8), height - 1, "X")]
         return Individual_DE(g)
 
     @classmethod
@@ -388,7 +388,7 @@ class Individual_DE(object):
         return Individual_DE(g)
 
 
-Individual = Individual_Grid
+Individual = Individual_DE
 
 
 def generate_successors(population):
