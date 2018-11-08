@@ -42,8 +42,10 @@ grid random individual:
  it has the same pipe-handling as mentioned above,
  and does not modify the first and last columns of the stage,
  aside from their defaults.
- we also generate only 5% randoms in our initial population.
- the other 95% are empty.
+ randoms have 20% of their tiles filled either randomly,
+ or by a randomly selected "theme" tile chosen per random grid
+ we also generate only 50% randoms in our initial population.
+ the other 50% are empty.
  with the original parameters most stages would end up unplayably full of random tiles
  
 

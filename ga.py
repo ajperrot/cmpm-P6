@@ -47,10 +47,10 @@ class Individual_Grid(object):
         # STUDENT Modify this, and possibly add more metrics.  You can replace this with whatever code you like.
         coefficients = dict(
             meaningfulJumpVariance=0.5,
-            negativeSpace=0.8,#originally 0.6
-            pathPercentage=0.4,#originally 0.5
-            emptyPercentage=0.6,
-            linearity=-0.2,#originally -0.5
+            negativeSpace=2.0,#originally 0.6
+            pathPercentage=0.2,#originally 0.5
+            emptyPercentage=2.0,#originally 0.9
+            linearity=-0.4,#originally -0.5
             solvability=4.0#originally 2.0
         )
         self._fitness = sum(map(lambda m: coefficients[m] * measurements[m],
@@ -71,18 +71,18 @@ class Individual_Grid(object):
         #mutation rate varies by individual
         rate = random.random()
         #alter at most 1% of stage
-        rate = rate / 100
+        rate = rate * .01
         alterations = math.floor(rate * width * height)
         for _ in range(alterations):
             y = math.floor(random.random() * height)
-            x = math.ceil(random.random() * (width - 2))
+            x = math.ceil(random.random() * (width - 3))
             addition = random.choice(options)
             addition, genome = getTile(y, x, addition, genome)
             genome[y][x] = addition
             #add 5 empty space per addition to compensate
-            for _ in range(5):
+            for _ in range(10):
                 y = math.floor(random.random() * height)
-                x = math.ceil(random.random() * (width - 2))
+                x = math.ceil(random.random() * (width - 3))
                 if genome[y][x] != "T" and genome[y][x] != "|":
                     genome[y][x] = "-"
         return genome
@@ -94,7 +94,7 @@ class Individual_Grid(object):
         # Leaving first and last columns alone...
         # do crossover with other
         left = 1
-        right = width - 1
+        right = width - 2
         for y in range(height):
             for x in range(left, right):
                 # STUDENT Which one should you take?  Self, or other?  Why?
@@ -125,11 +125,11 @@ class Individual_Grid(object):
         g = [["-" for col in range(width)] for row in range(height)]
         g[15][:] = ["X"] * width
         g[14][0] = "m"
-        g[7][-1] = "v"
+        g[7][-2] = "v"
         for col in range(8, 14):
-            g[col][-1] = "f"
+            g[col][-2] = "f"
         for col in range(14, 16):
-            g[col][-1] = "X"
+            g[col][-2] = "X"
         return cls(g)
 
     @classmethod
@@ -137,20 +137,27 @@ class Individual_Grid(object):
         # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
         # STUDENT also consider weighting the different tile types so it's not uniformly random
         g = [["-" for col in range(width)] for row in range(height)]
+        theme = random.choice(options)
         left = 1
-        right = width - 1
+        right = width - 2
         for y in range(height):
             for x in range(left, right):
-                #fill at most 25% of stage
-                if random.random() < 0.25:
-                    addition = random.choice(options)
+                #fill at most 20% of stage
+                if random.random() < 0.20:
+                    #50% chance to add theme tile
+                    if random.random() < 0.5:
+                        addition = theme
+                    else:
+                        addition = random.choice(options)
                     addition, g = getTile(y, x, addition, g)
                     g[y][x] = addition
         g[15][:] = ["X"] * width
         g[14][0] = "m"
-        g[7][-1] = "v"
-        g[8:14][-1] = ["f"] * 6
-        g[14:16][-1] = ["X", "X"]
+        g[7][-2] = "v"
+        for col in range(8, 14):
+            g[col][-2] = "f"
+        for col in range(14, 16):
+            g[col][-2] = "X"
         return cls(g)
 
 
@@ -202,6 +209,14 @@ class Individual_DE(object):
         # STUDENT For example, too many stairs are unaesthetic.  Let's penalize that
         if len(list(filter(lambda de: de[1] == "6_stairs", self.genome))) > 5:
             penalties -= 2
+        if len(list(filter(lambda de: de[1] == "3_coins", self.genome))) > 5:
+            penalties += 3
+        if len(list(filter(lambda de: de[1] == "7_pipe", self.genome))) > 3:
+            penalties -= 3
+        if len(list(filter(lambda de: de[1] == "0_hole", self.genome))) > 2:
+            penalties += 1
+        if len(list(filter(lambda de: de[1] == "1_platform", self.genome))) > 2:
+            penalties += 1
         # STUDENT If you go for the FI-2POP extra credit, you can put constraint calculation in here too and cache it in a new entry in __slots__.
         self._fitness = sum(map(lambda m: coefficients[m] * measurements[m],
                                 coefficients)) + penalties
@@ -390,10 +405,10 @@ def generate_successors(population):
         selected = []
         for i in range(len(population)):
             queue.append((population[i]._fitness, i,  population[i]))
-        for _ in range(0, math.floor(len(population) / p)):
+        for _ in range(0, math.ceil(len(population) / p)):
             selected.append(heapq.heappop(queue)[2])
         for parent in selected:
-            for _ in range(math.ceil(p/2)):
+            while len(results) < len(population):
                 children = parent.generate_children(random.choice(selected))
                 results.append(children[0])
                 results.append(children[1])
@@ -403,7 +418,7 @@ def generate_successors(population):
     totalFitness = 0
     for Individual in population:
         totalFitness += Individual._fitness
-    for _ in range(0, len(population), 2):
+    while len(results) < len(population):
         selection = random.random() * totalFitness
         for Parent in population:
             selection -= Parent._fitness
@@ -417,7 +432,6 @@ def generate_successors(population):
                         results.append(children[1])
                         break
                 break
-
     return results
 
 
@@ -432,7 +446,7 @@ def ga():
     with mpool.Pool(processes=os.cpu_count()) as pool:
         init_time = time.time()
         # STUDENT (Optional) change population initialization
-        population = [Individual.random_individual() if random.random() < 0.05 #ORIGINALLY 0.9
+        population = [Individual.random_individual() if random.random() < 0.5 #ORIGINALLY 0.9
                       else Individual.empty_individual()
                       for _g in range(pop_limit)]
         # But leave this line alone; we have to reassign to population because we get a new population that has more cached stuff in it.
@@ -484,17 +498,23 @@ def ga():
 def getTile(y, x, addition, g):
     #ensure pipe additions have a foundation
     if addition == "T":
-        i = 1
-        while len(g) > y+i+1:
-            belowPipe = random.choice(options)
-            if belowPipe != "o" and belowPipe != "-" and belowPipe != "E":
-                g[y+i][x] = belowPipe
-                if belowPipe != "|":
-                    break
-                i += 1
+        if random.random() < 0.3 or g[y][x-1] == "T" or g[y][x-1] == "|":
+            addition = "o"
+        else:
+            i = 1
+            while len(g) > y+i+1:
+                if random.random() < 0.5 or g[y+i][x-1] == "|" or g[y+i][x-1] != "T":
+                    belowPipe = random.choice(options)
+                    if belowPipe != "o" and belowPipe != "-" and belowPipe != "E":
+                        g[y+i][x] = belowPipe
+                        g[y+i][x+1] = belowPipe
+                        break 
+                else:
+                    g[y+i][x] = "|"
+                    i += 1
     if addition == "|":
         addition = "o"
-    if y != 0 and (g[y-1][x] == "T" or g[y-1][x] == "|"):
+    if y != 0 and (g[y-1][x] == "T" or g[y-1][x] == "|" or g[y-1][x-1] == "T" or g[y-1][x-1] == "|"):
         if addition == "o" or addition == "-" or addition == "E":
             if random.random() > .02:
                 addition = "B"
